@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import MenuScreen from './screens/MenuScreen';
-import QRCodeScreen from './screens/QRCodeScreen';
 import FaltasScreen from './screens/FaltasScreen';
 import ListaPresencaScreen from './screens/ListaPresencaScreen';
+import MenuScreen from './screens/MenuScreen';
+import QRCodeScreen from './screens/QrCodeScreen';
 
 const Stack = createNativeStackNavigator();
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList } from 'react-native';
-import { getPresencasHoje } from '../services/api';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { getPresencasHoje } from '../utils/storage';
 
 export default function ListaPresencaScreen() {
   const [alunos, setAlunos] = useState<string[]>([]);
@@ -10,13 +10,21 @@ export default function ListaPresencaScreen() {
   }, []);
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Alunos presentes hoje:</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Alunos presentes hoje:</Text>
       <FlatList
         data={alunos}
         keyExtractor={(item, index) => `${item}-${index}`}
-        renderItem={({ item }) => <Text>- {item}</Text>}
+        renderItem={({ item }) => <Text style={styles.item}>- {item}</Text>}
+        ListEmptyComponent={<Text>Nenhuma presença registrada ainda.</Text>}
       />
     </View>
   );
 }
+
+
+const styles = StyleSheet.create({
+  container: { padding: 20, flex: 1 },
+  title: { fontWeight: 'bold', fontSize: 18, marginBottom: 12 },
+  item: { fontSize: 16, marginVertical: 4 },
+});

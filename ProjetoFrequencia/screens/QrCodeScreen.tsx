@@ -1,42 +1,73 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Text, View, Button, Alert } from 'react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import { getMatricula } from '../utils/storage';
-import { registrarFrequencia } from '../services/api';
+import { CameraView, BarcodeScanningResult, useCameraPermissions } from 'expo-camera';
+import { useIsFocused } from '@react-navigation/native';
+
+import { getMatricula, getPresencasHoje, registrarPresencaLocal } from '../utils/storage';
 
 export default function QRCodeScreen() {
-  const [hasPermission, setHasPermission] = useState(false);
   const [scanned, setScanned] = useState(false);
+  const cameraRef = useRef(null);
+  const isFocused = useIsFocused();
+  const [permission, requestPermission] = useCameraPermissions();
 
-  useEffect(() => {
-    BarCodeScanner.requestPermissionsAsync().then(({ status }) => {
-      setHasPermission(status === 'granted');
-    });
-  }, []);
+  const processQRCode = async (senha: string) => {
+  const matricula = await getMatricula();
 
-  const handleBarCodeScanned = async ({ data }) => {
+  console.log('Matrícula atual:', matricula); 
+
+  if (!matricula) {
+    Alert.alert('Erro', 'Matrícula não cadastrada');
+    return;
+  }
+
+  await registrarPresencaLocal(matricula);
+
+  const presencas = await getPresencasHoje();
+  console.log('Presenças atuais:', presencas);
+          
+  Alert.alert('Registro', `QR code lido: ${senha}\nPresença registrada para matrícula: ${matricula}`);
+};
+
+  const handleBarCodeScanned = async (result: BarcodeScanningResult) => {
+    if (scanned) return;
     setScanned(true);
-    const senha = data;
-
-    const matricula = await getMatricula();
-    if (!matricula) {
-      Alert.alert("Erro", "Matrícula não cadastrada");
-      return;
-    }
-
-    const sucesso = await registrarFrequencia(matricula, senha);
-    Alert.alert("Registro", sucesso ? "Presença registrada!" : "Erro ao registrar.");
+    await processQRCode(result.data);
   };
 
-  if (!hasPermission) return <Text>Sem permissão para usar a câmera</Text>;
+  const resetScanner = () => {
+    setScanned(false);
+  };
+
+  if (!permission) {
+    return <Text>Solicitando permissão...</Text>;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Sem permissão para usar a câmera</Text>
+        <Button title="Conceder permissão" onPress={requestPermission} />
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1 }}>
-      <BarCodeScanner
-        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-        style={{ flex: 1 }}
-      />
-      {scanned && <Button title="Escanear novamente" onPress={() => setScanned(false)} />}
+    <View style={{ flex: 1, padding: 16 }}>
+      {isFocused && (
+        <CameraView
+          ref={cameraRef}
+          style={{ flex: 1 }}
+          facing="back"
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr'],
+          }}
+        />
+      )}
+      {scanned && (
+        <Button title="Escanear novamente" onPress={resetScanner} />
+      )}
     </View>
   );
 }
